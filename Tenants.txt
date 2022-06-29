@@ -1,0 +1,32 @@
+import json
+import requests
+import urllib3
+
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+base_url = "https://sandboxapicdc.cisco.com/api"
+login_url = f"{base_url}/aaaLogin.json"
+tenant_url = f"{base_url}/class/fvTenant.json"
+username = "admin"
+passwd = "!v3G@!4@Y"
+
+
+payload="{\r\n  \"aaaUser\" : {\r\n    \"attributes\" : {\r\n      \"name\" : \"admin\",\r\n      \"pwd\" : \"!v3G@!4@Y\"\r\n    }\r\n  }\r\n}"
+
+headers = {
+  'Content-Type': 'application/json',
+  'Cookie': 'APIC-cookie=eyJhbGciOiJSUzI1NiIsImtpZCI6ImhwaGswN20yMzN2cjZvNjZyOW5vNWc4eGhpZWN1dmlkIiwidHlwIjoiand0In0.eyJyYmFjIjpbeyJkb21haW4iOiJhbGwiLCJyb2xlc1IiOjAsInJvbGVzVyI6MX1dLCJpc3MiOiJBQ0kgQVBJQyIsInVzZXJuYW1lIjoiYWRtaW4iLCJ1c2VyaWQiOjE1Mzc0LCJ1c2VyZmxhZ3MiOjAsImlhdCI6MTY1NjQ1ODk0NywiZXhwIjoxNjU2NDU5NTQ3LCJzZXNzaW9uaWQiOiJ2ZDZqZUJrRVMvcWhxT09HWGt0MDhRPT0ifQ.dTZCewsKBEjm1-BzSbhEWYHUeZxRc4Tsu0NbItaJ7Aerb4ncGy4KoTroVAbAvgxhtaxavDMvmF2jzAsg1FhDmUWhhB4xkill0PV9NdwojiFhCUiBUJHipWzSYgDY-CohybtEgCImxyd1kL5GOFLNYTOFtZ50iqvt19FamoDjTY9gRv-UTYxO-Sf2p2FEaAE-mPsmYGWae5SC4BWHmQfrbUx5rgI-wUohv4angUcish73J48CvKS-2c6VlqsXYUpf3OPXwWjnTEzIzy4tT9AGPghJpwpn-AJ8sNcdkMfMucGJhfnWQXjnTBfTku1IL58VS28ig9Mzv3ZconF_V1uYzQ'
+}
+
+
+
+response = requests.request("POST", login_url, headers=headers, data=payload, verify=False)
+
+
+
+tenant = requests.request("GET", tenant_url, headers=headers, verify=False)
+
+print(tenant.json())
+for n in range(len(tenant.json()["imdata"])):
+  print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
