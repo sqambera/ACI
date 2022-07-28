@@ -13,33 +13,44 @@ login_url = f"{base_url}/aaaLogin.json"
 tenant_url = f"{base_url}/class/fvTenant.json"
 bd_url = f"{base_url}/node/class/fvBD.json"
 
+class ACI:
+  def obtain_token(self):
+    payload = json.dumps({
+      "aaaUser": {
+        "attributes": {
+          "name": user,
+          "pwd": pswd
+        }
+      }
+    })
 
-payload = json.dumps({
-  "aaaUser": {
-    "attributes": {
-      "name": user,
-      "pwd": pswd
-    }
+    headers = {
+      'Content-Type': 'application/json',
+      }
+
+    response = requests.request("POST", login_url, headers=headers, data=payload, verify=False).json()
+    token = response['imdata'][0]['aaaLogin']['attributes']['token']
+    return token
+
+  def obtain_tenant(self, req_headers):
+    tenant = requests.request("GET", tenant_url, headers=req_headers, verify=False)
+    for n in range(len(tenant.json()["imdata"])):
+      print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
+
+  def obtain_bd(self, req_headers):
+    bd = requests.request("GET", bd_url, headers=req_headers, verify=False).json()
+    print(json.dumps(bd, indent=4))
+
+
+if __name__=="__main__":
+  aci_data = ACI()
+  token = aci_data.obtain_token()
+
+  req_headers = {
+    'Content-Type': 'application/json',
+    'Cookie': 'APIC-cookie='+token
   }
-})
 
-headers = {
-  'Content-Type': 'application/json',
-  }
+  aci_data.obtain_tenant(req_headers)
+  aci_data.obtain_bd(req_headers)
 
-response = requests.request("POST", login_url, headers=headers, data=payload, verify=False).json()
-token = response['imdata'][0]['aaaLogin']['attributes']['token']
-
-
-req_headers = {
-  'Content-Type': 'application/json',
-  'Cookie': 'APIC-cookie='+token
-}
-
-tenant = requests.request("GET", tenant_url, headers=req_headers, verify=False)
-bd = requests.request("GET", bd_url, headers=req_headers, verify=False).json()
-
-for n in range(len(tenant.json()["imdata"])):
-  print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
-
-print(json.dumps(bd, indent=4))
