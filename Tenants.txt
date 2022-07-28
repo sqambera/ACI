@@ -1,6 +1,4 @@
 import json
-import os
-
 import requests
 import urllib3
 import os
@@ -13,6 +11,8 @@ pswd = os.environ.get('PASS')
 base_url = "https://192.168.111.100/api"
 login_url = f"{base_url}/aaaLogin.json"
 tenant_url = f"{base_url}/class/fvTenant.json"
+bd_url = f"{base_url}/node/class/fvBD.json"
+
 
 payload = json.dumps({
   "aaaUser": {
@@ -37,6 +37,9 @@ req_headers = {
 }
 
 tenant = requests.request("GET", tenant_url, headers=req_headers, verify=False)
+bd = requests.request("GET", bd_url, headers=req_headers, verify=False).json()
 
 for n in range(len(tenant.json()["imdata"])):
   print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
+
+print(json.dumps(bd, indent=4))
