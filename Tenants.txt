@@ -2,6 +2,8 @@ import json
 import requests
 import urllib3
 import os
+from acitoolkit.acitoolkit import *
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 user = os.environ.get('USER')
@@ -12,34 +14,54 @@ base_url = "https://192.168.111.100/api"
 login_url = f"{base_url}/aaaLogin.json"
 tenant_url = f"{base_url}/class/fvTenant.json"
 bd_url = f"{base_url}/node/class/fvBD.json"
+fault_url= f"{base_url}/node/class/faultSummary.json?&order-by=faultSummary.modTs|desc"
+
+class ACI:
+  def obtain_token(self):
+    payload = json.dumps({
+      "aaaUser": {
+        "attributes": {
+          "name": user,
+          "pwd": pswd
+        }
+      }
+    })
+
+    headers = {
+      'Content-Type': 'application/json',
+      }
+
+    response = requests.request("POST", login_url, headers=headers, data=payload, verify=False).json()
+    token = response['imdata'][0]['aaaLogin']['attributes']['token']
+    return token
+
+  def obtain_tenant(self, req_headers):
+    tenant = requests.request("GET", tenant_url, headers=req_headers, verify=False)
+    for n in range(len(tenant.json()["imdata"])):
+      print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
+
+  def obtain_bd(self, req_headers):
+    bd = requests.request("GET", bd_url, headers=req_headers, verify=False).json()
+    # print(json.dumps(bd, indent=4))
+    print("\n\n\n")
+    for n in range(len(bd["imdata"])):
+      print(json.dumps(bd["imdata"][n]["fvBD"]["attributes"]["name"], indent=4))
+
+  def obtain_faults(self, req_headers):
+    faults = requests.request("GET", fault_url, headers=req_headers, verify=False).json()
+    print(json.dumps(faults, indent=4))
 
 
-payload = json.dumps({
-  "aaaUser": {
-    "attributes": {
-      "name": user,
-      "pwd": pswd
-    }
+if __name__=="__main__":
+  aci_data = ACI()
+  token = aci_data.obtain_token()
+
+  req_headers = {
+    'Content-Type': 'application/json',
+    'Cookie': 'APIC-cookie='+token
   }
-})
 
-headers = {
-  'Content-Type': 'application/json',
-  }
+  aci_data.obtain_tenant(req_headers)
+  aci_data.obtain_bd(req_headers)
+  aci_data.obtain_faults(req_headers)
 
-response = requests.request("POST", login_url, headers=headers, data=payload, verify=False).json()
-token = response['imdata'][0]['aaaLogin']['attributes']['token']
-
-
-req_headers = {
-  'Content-Type': 'application/json',
-  'Cookie': 'APIC-cookie='+token
-}
-
-tenant = requests.request("GET", tenant_url, headers=req_headers, verify=False)
-bd = requests.request("GET", bd_url, headers=req_headers, verify=False).json()
-
-for n in range(len(tenant.json()["imdata"])):
-  print(json.dumps(tenant.json()["imdata"][n]["fvTenant"]["attributes"]["name"], indent=4))
-
-print(json.dumps(bd, indent=4))
