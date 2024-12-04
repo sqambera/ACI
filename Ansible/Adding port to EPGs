@@ -1,0 +1,61 @@
+---
+- name: Assign leaf port to multiple EPGs as a trunk
+  hosts: apic
+  connection: local
+  gather_facts: no
+  vars:
+    apic_host: "https://apic.example.com"
+    apic_username: "admin"
+    apic_password: "your_password"
+    leaf_node: "101"
+    leaf_port: "eth1/1"
+    tenant: "example_tenant"
+    application_profile: "example_app"
+    epgs:
+      - "EPG1"
+      - "EPG2"
+      - "EPG3"
+
+  tasks:
+    - name: Log in to Cisco ACI APIC
+      aci_rest:
+        host: "{{ apic_host }}"
+        username: "{{ apic_username }}"
+        password: "{{ apic_password }}"
+        validate_certs: no
+        path: "/api/aaaLogin.json"
+        method: post
+        content: "{\"aaaUser\":{\"attributes\":{\"name\":\"{{ apic_username }}\",\"pwd\":\"{{ apic_password }}\"}}}"
+      register: login
+
+    - name: Ensure login succeeded
+      fail:
+        msg: "Failed to log in to APIC"
+      when: login.status != 200
+
+    - name: Assign leaf port to EPGs as a trunk
+      loop: "{{ epgs }}"
+      vars:
+        epg: "{{ item }}"
+      aci_rest:
+        host: "{{ apic_host }}"
+        username: "{{ apic_username }}"
+        password: "{{ apic_password }}"
+        validate_certs: no
+        method: post
+        path: "/api/node/mo/uni/tn-{{ tenant }}/ap-{{ application_profile }}/epg-{{ epg }}/rsdomAtt-[uni/phys-phys]/leaf-{{ leaf_node }}/port-{{ leaf_port }}.json"
+        content: |
+          {
+            "fvRsPathAtt": {
+              "attributes": {
+                "tDn": "topology/pod-1/paths-{{ leaf_node }}/pathep-[{{ leaf_port }}]",
+                "mode": "trunk"
+              }
+            }
+          }
+      register: epg_results
+
+    - name: Validate all EPG assignments
+      fail:
+        msg: "Failed to assign port {{ leaf_port }} to EPG {{ item }}"
+      when: epg_results.failed
